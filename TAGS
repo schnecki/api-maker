@@ -1,40 +1,0 @@
-
-test/Spec.hs,15
-main main0,1
-
-src/ApiMaker/Ops.hs,340
-module ApiMaker.OpsApiMaker.Ops4,5
-runReqM runReqM23,24
-runReqWithParamsM runReqWithParamsM26,27
-runCfgReqM runCfgReqM30,31
-runCfgReqWithParamsM runCfgReqWithParamsM33,34
-mkReq mkReq37,38
-updateSession updateSession52,53
-mkSessionCookie mkSessionCookie59,60
-mkCsrfCookie mkCsrfCookie63,64
-mkCsrfHeader mkCsrfHeader67,68
-
-src/ApiMaker/Class.hs,730
-module ApiMaker.ClassApiMaker.Class11,12
-data Session Session31,32
-data Session = SessionSession31,32
-  { csrfToken csrfToken33,34
-  , sessionData sessionData34,35
-  , cookieJarData cookieJarData35,36
-data Config Config55,56
-data Config cfg = ConfigConfig55,56
-  { httpConfig httpConfig56,57
-  , apiDefaultParameters apiDefaultParameters57,58
-  , apiConfig apiConfig58,59
-newtype ReqSafe ReqSafe61,62
-askConfig askConfig65,66
-askApiConfig askApiConfig68,69
-instance MonadBase MonadBase IO (ReqSafe cfg)71,72
-  liftBase liftBase72,73
-instance MonadHttp MonadHttp (ReqSafe cfg)74,75
-  handleHttpException handleHttpException75,76
-  getHttpConfig getHttpConfig76,77
-runReqSafe runReqSafe78,79
-
-src/ApiMaker.hs,31
-module ApiMakerApiMaker13,14

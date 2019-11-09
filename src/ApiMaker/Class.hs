@@ -17,6 +17,9 @@ module ApiMaker.Class
   , askConfig
   , askApiConfig
   , ReqSafe (..)
+  , headerContentTypeJson
+  , headerContentTypeMultipart
+  , headerContentDispositionFile
   ) where
 
 import           Control.Monad.Base
@@ -43,12 +46,12 @@ class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), Http
   type Body r :: *
   type Response r :: *
   type Output r :: *
-  method :: cfg -> r -> Method r
-  url :: cfg -> r -> Url 'Https
-  body :: cfg -> r -> Body r
+  method   :: cfg -> r -> Method r
+  url      :: cfg -> r -> Url 'Https
+  body     :: cfg -> r -> Body r
   response :: cfg -> r -> Proxy (Response r)
-  option :: cfg -> r -> Option 'Https
-  process :: (MonadHttp m) => cfg -> r -> Response r -> StateT Session m (Output r)
+  option   :: cfg -> r -> Option 'Https
+  process  :: (MonadHttp m) => cfg -> r -> Response r -> StateT Session m (Output r)
 
 
 -- Type safe request
@@ -82,6 +85,24 @@ runReqSafe ::
   -> ReqSafe cfg a              -- ^ Computation to run
   -> m (Either HttpException a)
 runReqSafe config (ReqSafe m) = liftIO (runReaderT (runExceptT m) config)
+
+
+headerContentTypeJson :: Option scheme
+headerContentTypeJson = header "content-type" "application/json"
+
+headerContentTypeMultipart :: Option scheme
+headerContentTypeMultipart = header "content-type" "multipart/form-data"
+
+headerContentDispositionFile :: Text -> Option scheme
+headerContentDispositionFile filename = header "Content-Disposition" (E.encodeUtf8 $ T.concat ["attachment; filename=\"", filename, "\""])
+
+
+-- runReqSafeE ::
+--      MonadIO m
+--   => Config cfg                 -- ^ Config including 'HttpConfig' to use
+--   -> ReqSafe cfg a              -- ^ Computation to run
+--   -> ExceptT HttpException m a
+-- runReqSafeE = hoistExcept . runReqSafe
 
 
 -- instance MonadBaseControl IO ReqSafe where
