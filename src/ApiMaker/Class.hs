@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
@@ -28,6 +29,8 @@ import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.State
 import qualified Data.ByteString.Char8      as B
 import           Data.Proxy
+import qualified Data.Text                  as T
+import qualified Data.Text.Encoding         as E
 import qualified Network.HTTP.Client        as C
 import           Network.HTTP.Req
 
@@ -93,7 +96,7 @@ headerContentTypeJson = header "content-type" "application/json"
 headerContentTypeMultipart :: Option scheme
 headerContentTypeMultipart = header "content-type" "multipart/form-data"
 
-headerContentDispositionFile :: Text -> Option scheme
+headerContentDispositionFile :: T.Text -> Option scheme
 headerContentDispositionFile filename = header "Content-Disposition" (E.encodeUtf8 $ T.concat ["attachment; filename=\"", filename, "\""])
 
 
