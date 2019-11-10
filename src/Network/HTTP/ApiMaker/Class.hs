@@ -12,9 +12,10 @@
 {-# LANGUAGE UndecidableSuperClasses    #-}
 module Network.HTTP.ApiMaker.Class
   ( Request(..)
-  , Session(..)
   , Config (..)
   , SessionState (..)
+  , Session(..)
+  , emptySession
   , runSafeReqM
   , askConfig
   , askApiConfig
