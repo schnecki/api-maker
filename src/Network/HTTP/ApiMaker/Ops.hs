@@ -5,6 +5,7 @@
 module Network.HTTP.ApiMaker.Ops
   ( mkReq
   , mkReqM
+  , mkSessReqM
   , runReqM
   , runReqWithParamsM
   , runSessReqM
@@ -38,6 +39,9 @@ runSessReqWithParamsM params cfg = runSafeReqM (Config defaultHttpConfig params 
 
 mkReqM :: StateT Session (SafeReqM cfg) a -> SafeReqM cfg a
 mkReqM = flip evalStateT (Session Nothing Nothing Nothing)
+
+mkSessReqM :: st -> StateT st (SafeReqM cfg) a -> SafeReqM cfg a
+mkSessReqM = flip evalStateT
 
 mkReq :: (Request cfg request, SessionState st) => request -> SafeReqSt st cfg (Output request)
 mkReq r = do
