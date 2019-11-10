@@ -39,7 +39,7 @@ runSessReqWithParamsM params cfg = runSafeReqM (Config defaultHttpConfig params 
 mkReqM :: StateT Session (SafeReqM cfg) a -> SafeReqM cfg a
 mkReqM = flip evalStateT (Session Nothing Nothing Nothing)
 
-mkReq :: (Request cfg request) => request -> StateT Session (SafeReqM cfg) (Output request)
+mkReq :: (Request cfg request, SessionState st) => request -> SafeReqSt st cfg (Output request)
 mkReq r = do
   session <- get
   cfg <- lift askConfig
@@ -54,7 +54,7 @@ mkReq r = do
     mkSessionOps session =
       maybe mempty cookieJar (session ^. cookieJarData) <> header "Cookie" (B.intercalate ";" (mkSessionCookie session ++ mkCsrfCookie session)) <> mkCsrfHeader session
 
-updateSession :: (Request cfg request) => request -> Response request -> StateT Session (SafeReqM cfg) ()
+updateSession :: (Request cfg request, SessionState st) => request -> Response request -> SafeReqSt st cfg ()
 updateSession _ response =
   let cookies = C.destroyCookieJar $ responseCookieJar response
       sessData = C.cookie_value <$> find ((== "_SESSION") . C.cookie_name) cookies
@@ -62,15 +62,20 @@ updateSession _ response =
 
 
 -- Note: Server does not check/receive cookie!
-mkSessionCookie :: Session -> [B.ByteString]
-mkSessionCookie (Session _ (Just sess) _) = ["_SESSION=" <> sess]
-mkSessionCookie _                         = mempty
+mkSessionCookie :: (SessionState st) => st -> [B.ByteString]
+mkSessionCookie st =
+  case st ^. sessionData of
+    Nothing   -> mempty
+    Just sess -> ["_SESSION=" <> sess]
 
-mkCsrfCookie :: Session -> [B.ByteString]
-mkCsrfCookie (Session (Just csrf) _ _) = ["XSRF-TOKEN=" <> csrf]
-mkCsrfCookie _                         = mempty
+mkCsrfCookie :: (SessionState st) => st -> [B.ByteString]
+mkCsrfCookie st =
+  case st ^. csrfToken of
+    Nothing   -> mempty
+    Just csrf -> ["XSRF-TOKEN=" <> csrf]
 
-mkCsrfHeader :: Session -> Option scheme
-mkCsrfHeader (Session (Just csrf) _ _) = header "X-XSRF-TOKEN" csrf
-mkCsrfHeader _                         = mempty
-
+mkCsrfHeader :: (SessionState st) => st -> Option scheme
+mkCsrfHeader st =
+  case st ^. csrfToken of
+    Nothing   -> mempty
+    Just csrf -> header "X-XSRF-TOKEN" csrf

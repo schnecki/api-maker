@@ -19,6 +19,7 @@ module Network.HTTP.ApiMaker.Class
   , runSafeReqM
   , askConfig
   , askApiConfig
+  , SafeReqSt
   , SafeReq
   , SafeReqM (..)
   , headerContentTypeJson
@@ -71,7 +72,7 @@ class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), Http
   body     :: cfg -> r -> Body r
   response :: cfg -> r -> Proxy (Response r)
   option   :: cfg -> r -> Option 'Https
-  process  :: (MonadHttp m) => cfg -> r -> Response r -> StateT Session m (Output r)
+  process  :: (MonadHttp m, SessionState st) => cfg -> r -> Response r -> StateT st m (Output r)
 
 
 -- Type safe request
@@ -82,8 +83,9 @@ data Config cfg = Config
   , apiConfig            :: cfg
   }
 
+type SafeReqSt sessionState cfg a = StateT sessionState (SafeReqM cfg) a
+type SafeReq cfg a = SafeReqSt Session cfg a
 
-type SafeReq cfg a = StateT Session (SafeReqM cfg) a
 
 newtype SafeReqM cfg a =
   SafeReqM (ExceptT HttpException (ReaderT (Config cfg) IO) a)
