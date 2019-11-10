@@ -55,6 +55,9 @@ data Session = Session
   , sessCookieJarData :: Maybe C.CookieJar
   } deriving (Show)
 
+emptySession :: Session
+emptySession = Session Nothing Nothing Nothing
+
 class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), HttpBodyAllowed (AllowsBody (Method r)) (ProvidesBody (Body r))) =>
       Request cfg r
   where
