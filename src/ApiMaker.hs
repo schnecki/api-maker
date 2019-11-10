@@ -15,8 +15,8 @@ module ApiMaker
     ( module R
     ) where
 
-import           ApiMaker.Class   as R
-import           ApiMaker.Ops     as R
+import           Network.HTTP.ApiMaker.Class as R
+import           Network.HTTP.ApiMaker.Ops   as R
 
-import           Network.HTTP.Req as R
+import           Network.HTTP.Req            as R
 

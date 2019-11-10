@@ -2,8 +2,9 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-module ApiMaker.Ops
+module Network.HTTP.ApiMaker.Ops
   ( mkReq
+  , SafeReq
   , runReqM
   , runReqWithParamsM
   , runCfgReqM
@@ -12,30 +13,32 @@ module ApiMaker.Ops
 
 import           Control.Monad.Except
 import           Control.Monad.Trans.State
-import qualified Data.ByteString.Char8     as B
-import           Data.List                 (find)
-import           Data.Monoid               ((<>))
-import qualified Network.HTTP.Client       as C
+import qualified Data.ByteString.Char8       as B
+import           Data.List                   (find)
+import           Data.Monoid                 ((<>))
+import qualified Network.HTTP.Client         as C
 import           Network.HTTP.Req
 
-import           ApiMaker.Class
+import           Network.HTTP.ApiMaker.Class
 
 
-runReqM :: (MonadIO m) => ReqSafe () a -> m (Either HttpException a)
-runReqM = runReqSafe (Config defaultHttpConfig [] ())
+runReqM :: (MonadIO m) => SafeReqM () a -> m (Either HttpException a)
+runReqM = runSafeReqM (Config defaultHttpConfig [] ())
 
-runReqWithParamsM :: (MonadIO m) => [Option 'Https] -> ReqSafe () a -> m (Either HttpException a)
-runReqWithParamsM params = runReqSafe (Config defaultHttpConfig params ())
-
-
-runCfgReqM :: (MonadIO m) => cfg -> ReqSafe cfg a -> m (Either HttpException a)
-runCfgReqM cfg = runReqSafe (Config defaultHttpConfig [] cfg)
-
-runCfgReqWithParamsM :: (MonadIO m) => [Option 'Https] -> cfg -> ReqSafe cfg a -> m (Either HttpException a)
-runCfgReqWithParamsM params cfg = runReqSafe (Config defaultHttpConfig params cfg)
+runReqWithParamsM :: (MonadIO m) => [Option 'Https] -> SafeReqM () a -> m (Either HttpException a)
+runReqWithParamsM params = runSafeReqM (Config defaultHttpConfig params ())
 
 
-mkReq :: (Request cfg request) => request -> StateT Session (ReqSafe cfg) (Output request)
+runCfgReqM :: (MonadIO m) => cfg -> SafeReqM cfg a -> m (Either HttpException a)
+runCfgReqM cfg = runSafeReqM (Config defaultHttpConfig [] cfg)
+
+runCfgReqWithParamsM :: (MonadIO m) => [Option 'Https] -> cfg -> SafeReqM cfg a -> m (Either HttpException a)
+runCfgReqWithParamsM params cfg = runSafeReqM (Config defaultHttpConfig params cfg)
+
+
+type SafeReq cfg a = StateT Session (SafeReqM cfg) a
+
+mkReq :: (Request cfg request) => request -> StateT Session (SafeReqM cfg) (Output request)
 mkReq r = do
   session <- get
   cfg <- lift askConfig
@@ -50,7 +53,7 @@ mkReq r = do
     mkSessionOps session =
       maybe mempty cookieJar (cookieJarData session) <> header "Cookie" (B.intercalate ";" (mkSessionCookie session ++ mkCsrfCookie session)) <> mkCsrfHeader session
 
-updateSession :: (Request cfg request) => request -> Response request -> StateT Session (ReqSafe cfg) ()
+updateSession :: (Request cfg request) => request -> Response request -> StateT Session (SafeReqM cfg) ()
 updateSession _ response =
   let cookies = C.destroyCookieJar $ responseCookieJar response
       sessData = C.cookie_value <$> find ((== "_SESSION") . C.cookie_name) cookies

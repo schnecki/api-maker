@@ -10,14 +10,14 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE UndecidableSuperClasses    #-}
-module ApiMaker.Class
+module Network.HTTP.ApiMaker.Class
   ( Request(..)
   , Session(..)
   , Config (..)
-  , runReqSafe
+  , runSafeReqM
   , askConfig
   , askApiConfig
-  , ReqSafe (..)
+  , SafeReqM (..)
   , headerContentTypeJson
   , headerContentTypeMultipart
   , headerContentDispositionFile
@@ -65,29 +65,29 @@ data Config cfg = Config
   , apiConfig            :: cfg
   }
 
-newtype ReqSafe cfg a =
-  ReqSafe (ExceptT HttpException (ReaderT (Config cfg) IO) a)
+newtype SafeReqM cfg a =
+  SafeReqM (ExceptT HttpException (ReaderT (Config cfg) IO) a)
   deriving (Functor, Applicative, Monad, MonadIO)
 
-askConfig :: ReqSafe cfg (Config cfg)
-askConfig = ReqSafe (lift ask)
+askConfig :: SafeReqM cfg (Config cfg)
+askConfig = SafeReqM (lift ask)
 
-askApiConfig :: ReqSafe cfg cfg
-askApiConfig = apiConfig <$> ReqSafe (lift ask)
+askApiConfig :: SafeReqM cfg cfg
+askApiConfig = apiConfig <$> SafeReqM (lift ask)
 
-instance MonadBase IO (ReqSafe cfg) where
+instance MonadBase IO (SafeReqM cfg) where
   liftBase = liftIO
 
-instance MonadHttp (ReqSafe cfg) where
-  handleHttpException = ReqSafe . throwError
-  getHttpConfig = httpConfig <$> ReqSafe (lift ask)
+instance MonadHttp (SafeReqM cfg) where
+  handleHttpException = SafeReqM . throwError
+  getHttpConfig = httpConfig <$> SafeReqM (lift ask)
 
-runReqSafe ::
+runSafeReqM ::
      MonadIO m
   => Config cfg                 -- ^ Config including 'HttpConfig' to use
-  -> ReqSafe cfg a              -- ^ Computation to run
+  -> SafeReqM cfg a             -- ^ Computation to run
   -> m (Either HttpException a)
-runReqSafe config (ReqSafe m) = liftIO (runReaderT (runExceptT m) config)
+runSafeReqM config (SafeReqM m) = liftIO (runReaderT (runExceptT m) config)
 
 
 headerContentTypeJson :: Option scheme
@@ -100,17 +100,17 @@ headerContentDispositionFile :: T.Text -> Option scheme
 headerContentDispositionFile filename = header "Content-Disposition" (E.encodeUtf8 $ T.concat ["attachment; filename=\"", filename, "\""])
 
 
--- runReqSafeE ::
+-- runSafeReqME ::
 --      MonadIO m
 --   => Config cfg                 -- ^ Config including 'HttpConfig' to use
---   -> ReqSafe cfg a              -- ^ Computation to run
+--   -> SafeReqM cfg a              -- ^ Computation to run
 --   -> ExceptT HttpException m a
--- runReqSafeE = hoistExcept . runReqSafe
+-- runSafeReqME = hoistExcept . runSafeReqM
 
 
--- instance MonadBaseControl IO ReqSafe where
---   type StM ReqSafe a = a
---   liftBaseWith f = ReqSafe . ExceptT . ReaderT $ \r -> f (runReqSafe r)
+-- instance MonadBaseControl IO SafeReqM where
+--   type StM SafeReqM a = a
+--   liftBaseWith f = SafeReqM . ExceptT . ReaderT $ \r -> f (runSafeReqM r)
 --   {-# INLINEABLE liftBaseWith #-}
---   restoreM       = ReqSafe . ExceptT . ReaderT . const . return
+--   restoreM       = SafeReqM . ExceptT . ReaderT . const . return
 --   {-# INLINEABLE restoreM #-}
