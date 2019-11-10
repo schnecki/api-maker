@@ -14,15 +14,18 @@ module Network.HTTP.ApiMaker.Class
   ( Request(..)
   , Session(..)
   , Config (..)
+  , SessionState (..)
   , runSafeReqM
   , askConfig
   , askApiConfig
+  , SafeReq
   , SafeReqM (..)
   , headerContentTypeJson
   , headerContentTypeMultipart
   , headerContentDispositionFile
   ) where
 
+import           Control.Lens
 import           Control.Monad.Base
 import           Control.Monad.Except
 import           Control.Monad.Trans.Reader
@@ -35,11 +38,21 @@ import qualified Network.HTTP.Client        as C
 import           Network.HTTP.Req
 
 
+class SessionState st where
+  csrfToken :: Lens' st (Maybe B.ByteString)
+  sessionData :: Lens' st (Maybe B.ByteString)
+  cookieJarData :: Lens' st (Maybe C.CookieJar)
+
+instance SessionState Session where
+  csrfToken = lens sessCsrfToken (\sess c' -> sess {sessCsrfToken = c'})
+  sessionData = lens sessSessionData (\sess d' -> sess {sessSessionData = d'})
+  cookieJarData = lens sessCookieJarData (\sess d' -> sess {sessCookieJarData = d'})
+
 data Session = Session
    --  { unSession :: C.CookieJar }   -- TODO: Does not work? Bug?
-  { csrfToken     :: Maybe B.ByteString
-  , sessionData   :: Maybe B.ByteString
-  , cookieJarData :: Maybe C.CookieJar
+  { sessCsrfToken     :: Maybe B.ByteString
+  , sessSessionData   :: Maybe B.ByteString
+  , sessCookieJarData :: Maybe C.CookieJar
   } deriving (Show)
 
 class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), HttpBodyAllowed (AllowsBody (Method r)) (ProvidesBody (Body r))) =>
@@ -64,6 +77,9 @@ data Config cfg = Config
   , apiDefaultParameters :: [Option 'Https]
   , apiConfig            :: cfg
   }
+
+
+type SafeReq cfg a = StateT Session (SafeReqM cfg) a
 
 newtype SafeReqM cfg a =
   SafeReqM (ExceptT HttpException (ReaderT (Config cfg) IO) a)

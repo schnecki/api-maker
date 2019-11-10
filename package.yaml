@@ -33,6 +33,7 @@ dependencies:
 - containers
 - monad-control
 - mtl
+- lens
 
 
 library:

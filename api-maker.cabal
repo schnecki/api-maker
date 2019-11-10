@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f55630048be4efe10c277db1a93a0cdbcd09c46c9fd8567d288f576e0a1405ce
+-- hash: 3d562f5c53df14599679d5205301550090692543294acd70e6345aa58246cc80
 
 name:           api-maker
 version:        0.1.0.0
@@ -45,6 +45,7 @@ library
     , http-client
     , http-client-tls
     , http-types
+    , lens
     , monad-control
     , mtl
     , req
@@ -70,6 +71,7 @@ test-suite api-maker-test
     , http-client
     , http-client-tls
     , http-types
+    , lens
     , monad-control
     , mtl
     , req
