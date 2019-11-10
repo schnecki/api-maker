@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Network.HTTP.ApiMaker.Ops
   ( mkReq
+  , mkReqM
   , SafeReq
   , runReqM
   , runReqWithParamsM
@@ -22,6 +23,9 @@ import           Network.HTTP.Req
 import           Network.HTTP.ApiMaker.Class
 
 
+type SafeReq cfg a = StateT Session (SafeReqM cfg) a
+
+
 runReqM :: (MonadIO m) => SafeReqM () a -> m (Either HttpException a)
 runReqM = runSafeReqM (Config defaultHttpConfig [] ())
 
@@ -35,8 +39,8 @@ runCfgReqM cfg = runSafeReqM (Config defaultHttpConfig [] cfg)
 runCfgReqWithParamsM :: (MonadIO m) => [Option 'Https] -> cfg -> SafeReqM cfg a -> m (Either HttpException a)
 runCfgReqWithParamsM params cfg = runSafeReqM (Config defaultHttpConfig params cfg)
 
-
-type SafeReq cfg a = StateT Session (SafeReqM cfg) a
+mkReqM :: StateT Session (SafeReqM cfg) a -> SafeReqM cfg a
+mkReqM = flip evalStateT (Session Nothing Nothing Nothing)
 
 mkReq :: (Request cfg request) => request -> StateT Session (SafeReqM cfg) (Output request)
 mkReq r = do
