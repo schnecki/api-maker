@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3d562f5c53df14599679d5205301550090692543294acd70e6345aa58246cc80
+-- hash: 0e3db098bb0d7b2c1b22f663f0478dba6f2df3b553a6165761d2f3179b6eb506
 
 name:           api-maker
 version:        0.1.0.0
@@ -31,7 +31,9 @@ library
   exposed-modules:
       ApiMaker
       Network.HTTP.ApiMaker.Class
+      Network.HTTP.ApiMaker.HeaderContent
       Network.HTTP.ApiMaker.Ops
+      Network.HTTP.ApiMaker.SessionState
   other-modules:
       Paths_api_maker
   hs-source-dirs:

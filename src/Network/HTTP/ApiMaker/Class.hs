@@ -22,9 +22,6 @@ module Network.HTTP.ApiMaker.Class
   , SafeReqSt
   , SafeReq
   , SafeReqM (..)
-  , headerContentTypeJson
-  , headerContentTypeMultipart
-  , headerContentDispositionFile
   ) where
 
 import           Control.Lens
@@ -32,34 +29,20 @@ import           Control.Monad.Base
 import           Control.Monad.Except
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.State
-import qualified Data.ByteString.Char8      as B
+import qualified Data.ByteString.Char8              as B
 import           Data.Proxy
-import qualified Data.Text                  as T
-import qualified Data.Text.Encoding         as E
-import qualified Network.HTTP.Client        as C
+import qualified Data.Text                          as T
+import qualified Data.Text.Encoding                 as E
+import qualified Network.HTTP.Client                as C
 import           Network.HTTP.Req
 
+import           Network.HTTP.ApiMaker.SessionState
 
-class SessionState st where
-  csrfToken :: Lens' st (Maybe B.ByteString)
-  sessionData :: Lens' st (Maybe B.ByteString)
-  cookieJarData :: Lens' st (Maybe C.CookieJar)
 
-instance SessionState Session where
-  csrfToken = lens sessCsrfToken (\sess c' -> sess {sessCsrfToken = c'})
-  sessionData = lens sessSessionData (\sess d' -> sess {sessSessionData = d'})
-  cookieJarData = lens sessCookieJarData (\sess d' -> sess {sessCookieJarData = d'})
-
-data Session = Session
-   --  { unSession :: C.CookieJar }   -- TODO: Does not work? Bug?
-  { sessCsrfToken     :: Maybe B.ByteString
-  , sessSessionData   :: Maybe B.ByteString
-  , sessCookieJarData :: Maybe C.CookieJar
-  } deriving (Show)
-
-emptySession :: Session
-emptySession = Session Nothing Nothing Nothing
-
+-- | Class definition for a 'Request'. Every request should implement this, the rest is then handled by the library. See
+--  'mkReq' to create a request, the functions 'mkReqM' and 'mkSessReqM' to build a 'SafeReqM' monad that shares the
+--  same state, session and configuration, and finally 'runReqM', 'runSessReqM', 'runReqWithParamsM' and
+--  'runSessReqWithParamsM' to run the monad.
 class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), HttpBodyAllowed (AllowsBody (Method r)) (ProvidesBody (Body r))) =>
       Request cfg r
   where
@@ -67,6 +50,7 @@ class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), Http
   type Body r :: *
   type Response r :: *
   type Output r :: *
+  type Protocol r :: *
   method   :: cfg -> r -> Method r
   url      :: cfg -> r -> Url 'Https
   body     :: cfg -> r -> Body r
@@ -110,16 +94,6 @@ runSafeReqM ::
   -> SafeReqM cfg a             -- ^ Computation to run
   -> m (Either HttpException a)
 runSafeReqM config (SafeReqM m) = liftIO (runReaderT (runExceptT m) config)
-
-
-headerContentTypeJson :: Option scheme
-headerContentTypeJson = header "content-type" "application/json"
-
-headerContentTypeMultipart :: Option scheme
-headerContentTypeMultipart = header "content-type" "multipart/form-data"
-
-headerContentDispositionFile :: T.Text -> Option scheme
-headerContentDispositionFile filename = header "Content-Disposition" (E.encodeUtf8 $ T.concat ["attachment; filename=\"", filename, "\""])
 
 
 -- runSafeReqME ::
