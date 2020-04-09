@@ -50,12 +50,12 @@ class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), Http
   type Body r :: *
   type Response r :: *
   type Output r :: *
-  type Protocol r :: *
+  -- type Protocol r :: Scheme
   method   :: cfg -> r -> Method r
-  url      :: cfg -> r -> Url 'Https
+  url      :: cfg -> r -> Url 'Https -- (Protocol r)
   body     :: cfg -> r -> Body r
   response :: cfg -> r -> Proxy (Response r)
-  option   :: cfg -> r -> Option 'Https
+  option   :: cfg -> r -> Option 'Https -- (Protocol r)
   process  :: (MonadHttp m, SessionState st) => cfg -> r -> Response r -> StateT st m (Output r)
 
 
