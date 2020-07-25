@@ -30,6 +30,7 @@ import           Control.Monad.Except
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.State
 import qualified Data.ByteString.Char8              as B
+import           Data.Kind                          (Type)
 import           Data.Proxy
 import qualified Data.Text                          as T
 import qualified Data.Text.Encoding                 as E
@@ -46,10 +47,10 @@ import           Network.HTTP.ApiMaker.SessionState
 class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), HttpBodyAllowed (AllowsBody (Method r)) (ProvidesBody (Body r))) =>
       Request cfg r
   where
-  type Method r :: *
-  type Body r :: *
-  type Response r :: *
-  type Output r :: *
+  type Method r :: Type
+  type Body r :: Type
+  type Response r :: Type
+  type Output r :: Type
   -- type Protocol r :: Scheme
   method   :: cfg -> r -> Method r
   url      :: cfg -> r -> Url 'Https -- (Protocol r)
