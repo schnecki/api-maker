@@ -1,5 +1,63 @@
-# api-maker
+# Api Maker: Implementing APIs like never before
 
-Easily implement Https APIs.
+Api Maker let's you implement APIs simply by implementing the `class Request` for each possible
+request. It is built on top of the [Req](https://hackage.haskell.org/package/req) library.
 
-TODO: travis setup
+Lets say we want to implement a `GET` request that returns orders taken in an account. This actually
+implements the [GET orders request of
+oanda.com](https://developer.oanda.com/rest-live-v20/order-ep/). So we create a data type structure
+to hold what we want:
+
+    -- | GET Order(s) request
+    data GetOrder =
+      GetOrder AccountId OrderConfig
+
+    -- | This data type defines the header options that we can send
+    data OrderConfig = OrderConfig
+      { ids        :: Maybe [OrderId]           -- ^ List of Order IDs to retrieve
+      , state      :: Maybe OrderStateFilter    -- ^ The state to filter the requested Orders by [default=PENDING]
+      , instrument :: Maybe InstrumentName      -- ^ The instrument to filter the requested orders by
+      , orderCount :: Maybe Int                 -- ^ The maximum number of Orders to return [default=50, maximum=500]
+      , beforeID   :: Maybe OrderId             -- ^ The maximum Order ID to return. If not provided the most recent Orders in the Account are returned
+      } deriving (Show, Eq, Ord, ToJSON, Generic, NFData)
+
+
+and then we implement the class
+
+    instance Request OandaConfig GetOrder where
+      type Method GetOrder = GET                        -- It's a GET request
+      type Body GetOrder = NoReqBody                    -- We do not send a body
+      type Response GetOrder = JsonResponse OrderList   -- The response is a JSON list of orders
+      type Output GetOrder = OrderList                  -- We simply output the list in the `process` function without transformation
+      method _ GetOrder {} = GET                        -- GET request again
+      url cfg (GetOrder accId _) = ".../account/orders" -- The URL
+      body _ (GetOrder _ req) = NoReqBody               -- No Body to send
+      response _ GetOrder {} = jsonResponse             -- The expected response is in JSON format and is parsed using `aeson` with this function.
+      option _ (GetOrder _ cfg) =                       -- What header options to send
+        headerRFC3339DatetimeFormat <> configs
+          where
+            configs =
+              case cfg of
+                OrderConfig ids state instrument count beforeID ->
+                  "ids"        `queryParam` fmap (T.intercalate ";") ids <>
+                  "state"      `queryParam` fmap show state <>
+                  "instrument" `queryParam` instrument <>
+                  "count"      `queryParam` count <>
+                  "beforeID"   `queryParam` beforeID
+
+      -- Defines how to process the Response. One might change it here, e.g. filter values that cannot be specified by the request options.
+      process _ GetOrder {} response = return $ responseBody response
+
+The request `State` monad is then run like this:
+
+    runSessReqM cfg $ runRequests $ do
+      orders <- mkReq $ GetOrder myAccountId (OrderConfig Nothing Nothing (Just "USD/EUR") (Just 100) Nothing)
+      print orders
+
+This will create the session and run the requests. All `HttpException`s errors are caught and
+converted to exceptions. Thus `runSessReqM` returns a `Either HttpException a`. The function `mkReq`
+is used to actually make the requests, the data-type `GetOrder` defines what request to make and
+uses the corresponding account ID and the configuration provided. The result is a list of Orders,
+with type `OrderList`.
+
+

@@ -24,26 +24,20 @@ module Network.HTTP.ApiMaker.Class
   , SafeReqM (..)
   ) where
 
-import           Control.Lens
 import           Control.Monad.Base
 import           Control.Monad.Except
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.State
-import qualified Data.ByteString.Char8              as B
 import           Data.Kind                          (Type)
 import           Data.Proxy
-import qualified Data.Text                          as T
-import qualified Data.Text.Encoding                 as E
-import qualified Network.HTTP.Client                as C
 import           Network.HTTP.Req
 
 import           Network.HTTP.ApiMaker.SessionState
 
 
--- | Class definition for a 'Request'. Every request should implement this, the rest is then handled by the library. See
---  'mkReq' to create a request, the functions 'mkReqM' and 'mkSessReqM' to build a 'SafeReqM' monad that shares the
---  same state, session and configuration, and finally 'runReqM', 'runSessReqM', 'runReqWithParamsM' and
---  'runSessReqWithParamsM' to run the monad.
+-- | Class definition for a 'Request'. Every request should implement this, the rest is then handled by the library. See 'Network.HTTP.ApiMaker.Ops.mkReq' to create a request, the functions
+--  'Network.HTTP.ApiMaker.Ops.mkReqM' and 'Network.HTTP.ApiMaker.Ops.runRequests' to build a 'SafeReqM' monad that shares the same state, session and configuration, and finally
+--  'Network.HTTP.ApiMaker.Ops.runReqM', 'Network.HTTP.ApiMaker.Ops.runSessReqM', 'Network.HTTP.ApiMaker.Ops.runReqWithParamsM' and 'Network.HTTP.ApiMaker.Ops.runSessReqWithParamsM' to run the monad.
 class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), HttpBodyAllowed (AllowsBody (Method r)) (ProvidesBody (Body r))) =>
       Request cfg r
   where
@@ -62,6 +56,7 @@ class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), Http
 
 -- Type safe request
 
+-- | Configuration that is passed from request to request to hold the session and default https header options. It also holds a user defined configuration.
 data Config cfg = Config
   { httpConfig           :: HttpConfig
   , apiDefaultParameters :: [Option 'Https]
@@ -71,7 +66,7 @@ data Config cfg = Config
 type SafeReqSt sessionState cfg a = StateT sessionState (SafeReqM cfg) a
 type SafeReq cfg a = SafeReqSt Session cfg a
 
-
+-- | Safe request, e.g. all errors are caught and tured into exceptions.
 newtype SafeReqM cfg a =
   SafeReqM (ExceptT HttpException (ReaderT (Config cfg) IO) a)
   deriving (Functor, Applicative, Monad, MonadIO)
@@ -89,6 +84,7 @@ instance MonadHttp (SafeReqM cfg) where
   handleHttpException = SafeReqM . throwError
   getHttpConfig = httpConfig <$> SafeReqM (lift ask)
 
+-- | Safely run the request monad.
 runSafeReqM ::
      MonadIO m
   => Config cfg                 -- ^ Config including 'HttpConfig' to use
@@ -97,17 +93,3 @@ runSafeReqM ::
 runSafeReqM config (SafeReqM m) = liftIO (runReaderT (runExceptT m) config)
 
 
--- runSafeReqME ::
---      MonadIO m
---   => Config cfg                 -- ^ Config including 'HttpConfig' to use
---   -> SafeReqM cfg a              -- ^ Computation to run
---   -> ExceptT HttpException m a
--- runSafeReqME = hoistExcept . runSafeReqM
-
-
--- instance MonadBaseControl IO SafeReqM where
---   type StM SafeReqM a = a
---   liftBaseWith f = SafeReqM . ExceptT . ReaderT $ \r -> f (runSafeReqM r)
---   {-# INLINEABLE liftBaseWith #-}
---   restoreM       = SafeReqM . ExceptT . ReaderT . const . return
---   {-# INLINEABLE restoreM #-}
