@@ -24,3 +24,4 @@ cabal.project.local~
 stack.yaml.lock
 TAGS
 /.dir-locals.el
+/api-maker.cabal
