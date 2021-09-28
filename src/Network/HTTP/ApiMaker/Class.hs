@@ -63,7 +63,10 @@ data Config cfg = Config
   , apiConfig            :: cfg
   }
 
+-- | Safe request monad with customized session state `sessionState`, Config `cfg` and result `a`.
 type SafeReqSt sessionState cfg a = StateT sessionState (SafeReqM cfg) a
+
+-- | Safe request monad with predetermined @Session@, config `cfg` and result `a`.
 type SafeReq cfg a = SafeReqSt Session cfg a
 
 -- | Safe request, e.g. all errors are caught and tured into exceptions.
