@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE ExistentialQuantification  #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -22,15 +23,20 @@ module Network.HTTP.ApiMaker.Class
   , SafeReqSt
   , SafeReq
   , SafeReqM (..)
+  , SafeException (..)
+  , throwUserException
   ) where
 
+import           Control.Exception
 import           Control.Monad.Base
 import           Control.Monad.Except
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.State
+import           Data.Dynamic
 import           Data.Kind                          (Type)
 import           Data.Proxy
 import           Network.HTTP.Req
+
 
 import           Network.HTTP.ApiMaker.SessionState
 
@@ -51,7 +57,7 @@ class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), Http
   body     :: cfg -> r -> Body r
   response :: cfg -> r -> Proxy (Response r)
   option   :: cfg -> r -> Option 'Https -- (Protocol r)
-  process  :: (MonadHttp m, SessionState st) => cfg -> r -> Response r -> StateT st m (Output r)
+  process  :: (MonadHttp m, MonadError SafeException m, SessionState st) => cfg -> r -> Response r -> StateT st m (Output r)
 
 
 -- Type safe request
@@ -69,9 +75,21 @@ type SafeReqSt sessionState cfg a = StateT sessionState (SafeReqM cfg) a
 -- | Safe request monad with predetermined @Session@, config `cfg` and result `a`.
 type SafeReq cfg a = SafeReqSt Session cfg a
 
+
+data SafeException
+  = ReqException HttpException
+  | forall e. (Typeable e, Exception e) =>
+              SafeUserException e
+
+instance Exception SafeException
+instance Show SafeException where
+  show (ReqException e)      = show e
+  show (SafeUserException e) = show e
+
+
 -- | Safe request, e.g. all errors are caught and tured into exceptions.
 newtype SafeReqM cfg a =
-  SafeReqM (ExceptT HttpException (ReaderT (Config cfg) IO) a)
+  SafeReqM (ExceptT SafeException (ReaderT (Config cfg) IO) a)
   deriving (Functor, Applicative, Monad, MonadIO)
 
 askConfig :: SafeReqM cfg (Config cfg)
@@ -84,15 +102,30 @@ instance MonadBase IO (SafeReqM cfg) where
   liftBase = liftIO
 
 instance MonadHttp (SafeReqM cfg) where
-  handleHttpException = SafeReqM . throwError
+  handleHttpException = SafeReqM . throwError . ReqException
   getHttpConfig = httpConfig <$> SafeReqM (lift ask)
+
+instance MonadError SafeException (SafeReqM cfg) where
+  throwError = SafeReqM . throwError . SafeUserException
+  catchError c h = do
+    cfg <- askConfig
+    res <- runSafeReqM cfg c
+    case res of
+      Left ex -> h ex
+      Right{} -> SafeReqM $ ExceptT $ return res
+
+
+-- | Throw an Exception to the `SafeReqM` Monad.
+throwUserException :: (MonadError SafeException m, Exception e) => e -> m a
+throwUserException = throwError . SafeUserException
+
 
 -- | Safely run the request monad.
 runSafeReqM ::
      MonadIO m
   => Config cfg                 -- ^ Config including 'HttpConfig' to use
   -> SafeReqM cfg a             -- ^ Computation to run
-  -> m (Either HttpException a)
+  -> m (Either SafeException a)
 runSafeReqM config (SafeReqM m) = liftIO (runReaderT (runExceptT m) config)
 
 

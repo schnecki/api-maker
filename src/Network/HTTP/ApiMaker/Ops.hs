@@ -24,19 +24,19 @@ import           Network.HTTP.ApiMaker.Class
 
 
 -- | Prepare to run requests.
-runReqM :: (MonadIO m) => SafeReqM () a -> m (Either HttpException a)
+runReqM :: (MonadIO m) => SafeReqM () a -> m (Either SafeException a)
 runReqM = runSafeReqM (Config defaultHttpConfig [] ())
 
 -- | Prepare to run requests with addional header options.
-runReqWithParamsM :: (MonadIO m) => [Option 'Https] -> SafeReqM () a -> m (Either HttpException a)
+runReqWithParamsM :: (MonadIO m) => [Option 'Https] -> SafeReqM () a -> m (Either SafeException a)
 runReqWithParamsM params = runSafeReqM (Config defaultHttpConfig params ())
 
 -- | Prepare to run request with config.
-runSessReqM :: (MonadIO m) => cfg -> SafeReqM cfg a -> m (Either HttpException a)
+runSessReqM :: (MonadIO m) => cfg -> SafeReqM cfg a -> m (Either SafeException a)
 runSessReqM cfg = runSafeReqM (Config defaultHttpConfig [] cfg)
 
 -- | Prepare to run request with config and additional header options.
-runSessReqWithParamsM :: (MonadIO m) => [Option 'Https] -> cfg -> SafeReqM cfg a -> m (Either HttpException a)
+runSessReqWithParamsM :: (MonadIO m) => [Option 'Https] -> cfg -> SafeReqM cfg a -> m (Either SafeException a)
 runSessReqWithParamsM params cfg = runSafeReqM (Config defaultHttpConfig params cfg)
 
 
@@ -57,7 +57,6 @@ mkReq r = do
   session <- get
   cfg <- lift askConfig
   apiCfg <- lift askApiConfig
-
   let ops = option apiCfg r <> mkSessionOps session <> mconcat (apiDefaultParameters cfg)
   -- liftIO $ putStrLn $ "Running a request to " <> show (url r)
   resp <- lift $ req (method apiCfg r) (url apiCfg r) (body apiCfg r) (response apiCfg r) ops
