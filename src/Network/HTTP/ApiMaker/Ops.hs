@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE KindSignatures    #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 module Network.HTTP.ApiMaker.Ops
   ( mkReq
   , runRequests
@@ -10,6 +12,7 @@ module Network.HTTP.ApiMaker.Ops
   , runReqWithParamsM
   , runSessReqM
   , runSessReqWithParamsM
+  , maybeQueryParam
   ) where
 
 import           Control.Lens
@@ -17,8 +20,12 @@ import           Control.Monad.Except
 import           Control.Monad.Trans.State
 import qualified Data.ByteString.Char8       as B
 import           Data.List                   (find)
+import           Data.Monoid
+import qualified Data.Text                   as T
+import           Logging
 import qualified Network.HTTP.Client         as C
 import           Network.HTTP.Req
+import           Web.HttpApiData
 
 import           Network.HTTP.ApiMaker.Class
 
@@ -58,7 +65,8 @@ mkReq r = do
   cfg <- lift askConfig
   apiCfg <- lift askApiConfig
   let ops = option apiCfg r <> mkSessionOps session <> mconcat (apiDefaultParameters cfg)
-  -- liftIO $ putStrLn $ "Running a request to " <> show (url r)
+      -- opsShow = appEndo ops
+  -- liftIO $ $(logInfo) $ "API Request: " <> T.pack (show $ url apiCfg r) <> " with options " -- <> -- T.pack (show ops)
   resp <- lift $ req (method apiCfg r) (url apiCfg r) (body apiCfg r) (response apiCfg r) ops
   updateSession r resp
   process apiCfg r resp
@@ -91,3 +99,10 @@ mkCsrfHeader st =
   case st ^. csrfToken of
     Nothing   -> mempty
     Just csrf -> header "X-XSRF-TOKEN" csrf
+
+
+-- | Create a request parameter only if the value is @Just@. For @Nothing@ the parameter is not present at all in the request.
+maybeQueryParam :: (Monoid param, QueryParam param, ToHttpApiData a) => T.Text -> Maybe a -> param
+maybeQueryParam _ Nothing  = mempty
+maybeQueryParam n (Just x) = n =: x
+

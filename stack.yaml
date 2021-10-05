@@ -35,6 +35,7 @@ resolver:
 #  - wai
 packages:
 - .
+- ../easy-logger
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
