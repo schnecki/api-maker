@@ -3,6 +3,7 @@ module ApiMaker
     ) where
 
 import           Network.HTTP.ApiMaker.Class         as R
+import           Network.HTTP.ApiMaker.Logging       as R
 import           Network.HTTP.ApiMaker.Ops           as R
 
 import           Network.HTTP.ApiMaker.HeaderContent as R

@@ -20,9 +20,8 @@ import           Control.Monad.Except
 import           Control.Monad.Trans.State
 import qualified Data.ByteString.Char8       as B
 import           Data.List                   (find)
-import           Data.Monoid
 import qualified Data.Text                   as T
-import           Logging
+import           EasyLogger
 import qualified Network.HTTP.Client         as C
 import           Network.HTTP.Req
 import           Web.HttpApiData
@@ -65,14 +64,16 @@ mkReq r = do
   cfg <- lift askConfig
   apiCfg <- lift askApiConfig
   let ops = option apiCfg r <> mkSessionOps session <> mconcat (apiDefaultParameters cfg)
-      -- opsShow = appEndo ops
-  -- liftIO $ $(logInfo) $ "API Request: " <> T.pack (show $ url apiCfg r) <> " with options " -- <> -- T.pack (show ops)
-  resp <- lift $ req (method apiCfg r) (url apiCfg r) (body apiCfg r) (response apiCfg r) ops
+      logging request = do
+        liftIO $ $(logInfo) $ "API Request: " <> T.pack (show request)
+        return request
+  resp <- lift $ reqCb (method apiCfg r) (url apiCfg r) (body apiCfg r) (response apiCfg r) ops logging
   updateSession r resp
   process apiCfg r resp
   where
     mkSessionOps session =
       maybe mempty cookieJar (session ^. cookieJarData) <> header "Cookie" (B.intercalate ";" (mkSessionCookie session ++ mkCsrfCookie session)) <> mkCsrfHeader session
+
 
 updateSession :: (Request cfg request, SessionState st) => request -> Response request -> SafeReqSt st cfg ()
 updateSession _ resp =
@@ -105,4 +106,5 @@ mkCsrfHeader st =
 maybeQueryParam :: (Monoid param, QueryParam param, ToHttpApiData a) => T.Text -> Maybe a -> param
 maybeQueryParam _ Nothing  = mempty
 maybeQueryParam n (Just x) = n =: x
+
 
