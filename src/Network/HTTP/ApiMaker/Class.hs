@@ -35,8 +35,8 @@ import           Control.Monad.Trans.State
 import           Data.Dynamic
 import           Data.Kind                          (Type)
 import           Data.Proxy
+import qualified Network.HTTP.Client                as C
 import           Network.HTTP.Req
-
 
 import           Network.HTTP.ApiMaker.SessionState
 
@@ -56,7 +56,9 @@ class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), Http
   url      :: cfg -> r -> Url 'Https -- (Protocol r)
   body     :: cfg -> r -> Body r
   response :: cfg -> r -> Proxy (Response r)
-  option   :: cfg -> r -> Option 'Https -- (Protocol r)
+  option   :: cfg -> r -> IO (Option 'Https) -- (Protocol r)
+  requestModifier :: cfg -> r -> C.Request -> IO (C.Request)
+  requestModifier _ _ = return
   process  :: (MonadHttp m, MonadError SafeException m, SessionState st) => cfg -> r -> Response r -> StateT st m (Output r)
 
 

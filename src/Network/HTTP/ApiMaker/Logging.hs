@@ -11,3 +11,5 @@ enableRequestLogging = $(initLogger)
 
 disableRequestLogging :: IO ()
 disableRequestLogging = $(finalizeLogger)
+
+

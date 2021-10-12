@@ -63,8 +63,10 @@ mkReq r = do
   session <- get
   cfg <- lift askConfig
   apiCfg <- lift askApiConfig
-  let ops = option apiCfg r <> mkSessionOps session <> mconcat (apiDefaultParameters cfg)
-      logging request = do
+  opsReq <- liftIO $ option apiCfg r
+  let ops = opsReq <> mkSessionOps session <> mconcat (apiDefaultParameters cfg)
+  let logging request' = do
+        request <- liftIO $ requestModifier apiCfg r request'
         liftIO $ $(logInfo) $ "API Request: " <> T.pack (show request)
         return request
   resp <- lift $ reqCb (method apiCfg r) (url apiCfg r) (body apiCfg r) (response apiCfg r) ops logging
