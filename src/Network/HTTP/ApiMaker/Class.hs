@@ -57,7 +57,7 @@ class (HttpMethod (Method r), HttpBody (Body r), HttpResponse (Response r), Http
   body     :: cfg -> r -> Body r
   response :: cfg -> r -> Proxy (Response r)
   option   :: cfg -> r -> IO (Option 'Https) -- (Protocol r)
-  requestModifier :: cfg -> r -> C.Request -> IO (C.Request)
+  requestModifier :: cfg -> r -> C.Request -> IO C.Request
   requestModifier _ _ = return
   process  :: (MonadHttp m, MonadError SafeException m, SessionState st) => cfg -> r -> Response r -> StateT st m (Output r)
 
