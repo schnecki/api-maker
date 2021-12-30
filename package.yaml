@@ -35,7 +35,7 @@ dependencies:
 - mtl
 - lens
 - http-api-data
-- easy-logger
+- easy-logger >= 0.1.0.6
 
 
 library:
