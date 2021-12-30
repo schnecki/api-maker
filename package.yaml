@@ -48,7 +48,6 @@ library:
     -Wredundant-constraints
     -fwarn-tabs
     -fno-warn-name-shadowing
-    -O2
     -funbox-strict-fields
   when:
     - condition: impl(ghc < 8.0)
