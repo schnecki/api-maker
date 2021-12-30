@@ -6,7 +6,7 @@ module Network.HTTP.ApiMaker.Logging
 
 import           EasyLogger
 
-enableRequestLogging :: LogDestination -> LogLevel -> IO ()
+enableRequestLogging :: LogDestination -> IO ()
 enableRequestLogging = $(initLogger)
 
 disableRequestLogging :: IO ()
