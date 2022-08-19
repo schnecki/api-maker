@@ -129,5 +129,3 @@ runSafeReqM ::
   -> SafeReqM cfg a             -- ^ Computation to run
   -> m (Either SafeException a)
 runSafeReqM config (SafeReqM m) = liftIO (runReaderT (runExceptT m) config)
-
-
