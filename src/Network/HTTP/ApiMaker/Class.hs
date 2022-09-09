@@ -25,6 +25,8 @@ module Network.HTTP.ApiMaker.Class
   , SafeReqM (..)
   , SafeException (..)
   , throwUserException
+  , catchError
+  , throwError
   ) where
 
 import           Control.Exception
