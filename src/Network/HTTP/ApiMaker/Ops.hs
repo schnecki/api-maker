@@ -16,7 +16,8 @@ module Network.HTTP.ApiMaker.Ops
   ) where
 
 import           Control.Lens
-import           Control.Monad.Except
+import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
 import qualified Data.ByteString.Char8       as B
 import           Data.List                   (find)

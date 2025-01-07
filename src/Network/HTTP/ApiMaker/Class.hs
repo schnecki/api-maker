@@ -32,6 +32,8 @@ module Network.HTTP.ApiMaker.Class
 import           Control.Exception
 import           Control.Monad.Base
 import           Control.Monad.Except
+import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.State
 import           Data.Dynamic

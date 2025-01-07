@@ -20,7 +20,7 @@ category:            Web
 description:         Please see the README on GitHub at <https://github.com/schnecki/api-maker#readme>
 
 dependencies:
-- base >= 4.7 && < 5
+- base >= 4.9 && < 5
 - aeson
 - bytestring
 - req
